@@ -16,7 +16,7 @@ rather than across the whole roll.
 
 ## Findings
 
-Seven, on 5,821 chase-free arms-length residential sales joined to the 2025 roll. The
+Eight, on 5,821 chase-free arms-length residential sales joined to the 2025 roll. The
 first was not the question the project set out to ask, and it changed how the rest had
 to be measured.
 
@@ -253,6 +253,74 @@ up indirectly; assessment type states it.
 
 `python3 revaluation.py`
 
+### 8. The regressivity survives the controls, at about half its size
+
+Finding 2 says ratios differ across price deciles. The obvious objection is that cheap
+and expensive homes are different homes, and a mass appraisal model doing its job will
+make different errors on different kinds of property without any of it being about price.
+The state parcel layer cannot answer that, because it holds an assessed value and an
+address and nothing about the building.
+
+The [City of Madison parcel layer](https://maps.cityofmadison.com/arcgis/rest/services/Public/OPEN_DATA2/FeatureServer/0)
+holds the assessor's own inputs: year built, living area, bedrooms, baths, style,
+basement, air conditioning, lot size, and the office's own assessment-area codes. 2,405
+of Madison's 2,473 chase-free sales join to it.
+
+**Most of this finding is a trap, and the trap is the interesting part.** The natural
+specification regresses log assessment ratio on log2 sale price and adds the
+characteristics as controls. It is wrong, and it is wrong in the direction that flatters
+the finding. The dependent variable is `log(assessed) - log(price)` and the regressor is
+`log2(price)`, so price sits on both sides. Controls that predict assessed value strip
+out the part of the left side that is not price, and in the limit the coefficient goes to
+`-ln 2 = -0.693` however fair the roll is.
+
+That is measured, not asserted. A synthetic roll is built on which the assessor is neutral
+by construction, its value being exactly the hedonic prediction of sale price with no
+price grading whatsoever, and every specification is run against it:
+
+| specification | slope | se | null | excess |
+|---|---|---|---|---|
+| price only | -0.1130 | 0.0068 | -0.0995 | -0.0134 |
+| plus house characteristics | -0.2547 | 0.0120 | -0.3458 | +0.0910 |
+| plus assessment-area fixed effects | -0.2599 | 0.0114 | -0.3337 | +0.0737 |
+| plus both | -0.4132 | 0.0156 | **-0.6931** | +0.2800 |
+
+The fully controlled null lands on -ln 2 to four decimals. **Adding controls made the
+estimate 3.7 times larger and told us nothing.** The most heavily controlled
+specification is the most contaminated, not the most convincing. Anyone reporting -0.413
+as a stronger version of -0.113 would be reporting arithmetic.
+
+The specification that works replaces realised sale price with *predicted* price, fitted
+from the characteristics and the assessment area. The prediction contains nothing from
+the individual transaction, so sale-price noise cannot enter the regressor:
+
+| specification | slope | se | t | null |
+|---|---|---|---|---|
+| log ratio on log2 **predicted** price | **-0.0626** | 0.0077 | -8.1 | +0.0000 |
+
+Zero on the neutral roll by construction rather than by luck. On the real roll, **-0.063
+per doubling, 55% of the uncontrolled -0.113, and outside IAAO's neutral band of plus or
+minus 0.05.**
+
+So the answer is yes, with a haircut. Half of Madison's apparent regressivity was the
+composition of cheap and expensive housing stock. The other half is two houses of the
+same age, size, style and assessment neighborhood being assessed at different fractions
+of what they are worth, and that half is eight standard errors from zero.
+
+Ranked by predicted rather than realised price, the cheapest tenth of Madison homes
+carries an assessment ratio **4.8%** higher than the priciest tenth. The gradient is not
+monotone: it is flat to slightly rising through the middle and falls away in the top
+three deciles, so what this measures is the expensive end being under-assessed rather
+than the cheap end being singled out.
+
+One caveat stated rather than buried. The 68 sales that fail to join move the
+uncontrolled Madison slope from -0.050 to -0.113. They are parcels the state layer codes
+as class-1 residential but Madison holds no house record for: apartment buildings,
+assemblies, and a $3.4m parcel assessed at 0.14 of it. The joined sample is the narrower
+and cleaner one and it is also the more regressive one.
+
+`python3 fetch_madison.py && python3 hedonic.py`
+
 ### What the time adjustment cost
 
 Fitting the market trend on all sales returns 14.3% annual price growth for Dane County.
@@ -275,6 +343,7 @@ roughly twenty counties it works in have been tested.
 | WI DOR Real Estate Transfer Returns | parcel-level sale price and date, five year window | `propertyinfo.revenue.wi.gov`, public |
 | WI DOR Wisconsin Municipal Assessors | contracted assessor for all 1,913 Wisconsin municipalities across 71 counties | `assrlist.pdf`, public |
 | WI DOR Wisconsin Real Estate Sales | assessment type per municipality per year, 1,913 municipalities | Tableau workbook extract, public |
+| City of Madison Tax Parcels | 72,347 residential parcels with year built, living area, bedrooms, baths, style, basement, air conditioning, lot size and the assessor's own area codes | ArcGIS FeatureServer, public |
 | Cook County Assessor, Parcel Sales and Assessed Values | 559,483 class-2 residential sales 2015 to 2019 with mailed, certified and board values | `datacatalog.cookcountyil.gov`, Socrata, public |
 
 Raw pulls land in `data/` and are gitignored. Every script that touches the network
