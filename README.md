@@ -14,6 +14,13 @@ Ratio Studies: sales ratio per property, then coefficient of dispersion, price-r
 differential and price-related bias, computed within price decile and neighborhood
 rather than across the whole roll.
 
+## The written version
+
+`site/index.html` is the memo: eight slides with charts, leading with the sales chasing.
+Build it with `python3 memo.py`. Every figure on the page is computed at build time by
+importing the scripts below, so the page cannot drift from the repo, and `memo.py --test`
+fails if a headline claim stops holding.
+
 ## Findings
 
 Eight, on 5,821 chase-free arms-length residential sales joined to the 2025 roll. The
