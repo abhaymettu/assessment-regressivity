@@ -378,116 +378,6 @@ def cook_chart(f):
 
 # ----------------------------------------------------------------------- prose
 
-CSS = """
-:root{
-  --surface:#fcfcfb; --plane:#f9f9f7; --ink:#0b0b0b; --ink2:#52514e;
-  --muted:#898781; --grid:#e1e0d9; --axis:#c3c2b7; --rule:rgba(11,11,11,.10);
-  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
-  --pos:#2a78d6; --neg:#e34948; --bar:#c3c2b7;
-  color-scheme:light;
-}
-@media (prefers-color-scheme:dark){
-  :root:where(:not([data-theme=light])){
-    --surface:#1a1a19; --plane:#0d0d0d; --ink:#fff; --ink2:#c3c2b7;
-    --muted:#898781; --grid:#2c2c2a; --axis:#383835; --rule:rgba(255,255,255,.10);
-    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
-    --pos:#3987e5; --neg:#e66767; --bar:#4a4a46;
-    color-scheme:dark;
-  }
-}
-:root[data-theme=dark]{
-  --surface:#1a1a19; --plane:#0d0d0d; --ink:#fff; --ink2:#c3c2b7;
-  --muted:#898781; --grid:#2c2c2a; --axis:#383835; --rule:rgba(255,255,255,.10);
-  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
-  --pos:#3987e5; --neg:#e66767; --bar:#4a4a46;
-  color-scheme:dark;
-}
-*{box-sizing:border-box}
-body{margin:0; overflow-x:hidden; overflow-wrap:break-word; background:var(--plane);
-  color:var(--ink); font:400 17px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;
-  -webkit-text-size-adjust:100%}
-.slide{background:var(--surface); max-width:66rem; margin:0 auto 1.5rem;
-  padding:4.5rem clamp(1.25rem,5vw,4.5rem) 3.5rem; border-bottom:1px solid var(--rule)}
-.eyebrow{font-size:.75rem; letter-spacing:.14em; text-transform:uppercase;
-  color:var(--muted); margin:0 0 1.75rem; font-variant-numeric:tabular-nums}
-h1{font-size:clamp(2rem,5.2vw,3.1rem); line-height:1.1; letter-spacing:-.02em;
-  font-weight:600; margin:0 0 1.5rem; max-width:24ch}
-h2{font-size:clamp(1.5rem,3.4vw,2.15rem); line-height:1.2; letter-spacing:-.015em;
-  font-weight:600; margin:0 0 1.25rem; max-width:30ch}
-h3{font-size:1.05rem; font-weight:600; margin:2rem 0 .5rem; letter-spacing:-.005em}
-.lede{font-size:1.075rem; color:var(--ink2); max-width:62ch; margin:0 0 2rem}
-.sub{font-size:1.15rem; color:var(--ink2); max-width:52ch; margin:0 0 2.5rem}
-.meta,.cap{font-size:.875rem; color:var(--muted); max-width:64ch; margin:1.25rem 0 0}
-.cap + .lede{margin-top:1.75rem}
-.src{font-size:.8125rem; color:var(--muted); margin:2.5rem 0 0; padding-top:1rem;
-  border-top:1px solid var(--rule)}
-.src a{color:var(--ink2)}
-code{font-size:.9em; font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-svg{width:100%; height:auto; display:block; margin:1rem 0 .5rem}
-.grid{stroke:var(--grid); stroke-width:1}
-.mark{stroke:var(--muted); stroke-width:1; stroke-dasharray:3 3}
-.ln{fill:none; stroke-width:2; stroke-linejoin:round; stroke-linecap:round}
-text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
-.tick{font-size:12px; fill:var(--muted); font-variant-numeric:tabular-nums}
-.lab{font-size:13px; fill:var(--ink2)}
-.series{font-size:13px; fill:var(--ink); font-weight:600}
-.note{font-size:12px; fill:var(--muted)}
-.axis,text.axis{font-size:12px; fill:var(--muted); stroke:none; letter-spacing:.04em;
-  text-transform:uppercase}
-.title{padding-top:6rem; padding-bottom:5rem}
-.hero{margin:2.5rem 0 1rem; display:flex; align-items:baseline; gap:1.25rem;
-  flex-wrap:wrap}
-.fig{font-size:clamp(4rem,13vw,7.5rem); line-height:.9; font-weight:600;
-  letter-spacing:-.04em; color:var(--neg)}
-.fig-cap{font-size:1rem; color:var(--ink2); max-width:20ch}
-.hero-row{display:flex; gap:2.5rem; flex-wrap:wrap; margin:2rem 0 1rem;
-  padding-top:1.5rem; border-top:1px solid var(--rule)}
-.stat{display:flex; flex-direction:column; gap:.35rem}
-.sv{font-size:1.75rem; font-weight:600; letter-spacing:-.02em;
-  font-variant-numeric:tabular-nums}
-.sl{font-size:.8125rem; color:var(--muted); font-variant-numeric:tabular-nums}
-.sl em{font-style:normal; color:var(--ink2); letter-spacing:.06em;
-  text-transform:uppercase; font-size:.9em}
-.tw{overflow-x:auto; margin:1rem 0}
-.tcap{color:var(--muted); font-size:.8125rem; margin:.75rem 0 0}
-table{border-collapse:collapse; width:100%; min-width:30rem; margin:1rem 0;
-  font-size:.9375rem; font-variant-numeric:tabular-nums}
-caption{text-align:left; color:var(--muted); font-size:.8125rem; padding-bottom:.75rem}
-th,td{text-align:right; padding:.55rem .5rem; border-bottom:1px solid var(--rule)}
-thead th{color:var(--muted); font-weight:500; font-size:.8125rem}
-tbody th,th[scope=row],thead th:first-child{text-align:left; font-weight:500}
-td.l,th.l{text-align:left}
-.fail{color:var(--neg); font-weight:600}
-.pass{color:var(--muted)}
-.d{color:var(--muted); font-size:.85em}
-details{margin:1.5rem 0 0; border-top:1px solid var(--rule); padding-top:1rem}
-summary{cursor:pointer; font-size:.875rem; color:var(--ink2)}
-.cols{display:grid; grid-template-columns:repeat(auto-fit,minmax(19rem,1fr));
-  gap:1rem 3rem}
-.cols h3{margin-top:0}
-ul,ol{padding-left:1.15rem; max-width:62ch}
-li{margin:.6rem 0; color:var(--ink2)}
-.basis{border-left:3px solid var(--axis); padding:.25rem 0 .25rem 1.15rem;
-  color:var(--ink2); max-width:64ch; font-size:.9375rem; margin:2rem 0 0}
-.stop{border-left:3px solid var(--neg); padding:.25rem 0 .25rem 1.15rem;
-  color:var(--ink2); max-width:62ch}
-@media (max-width:640px){.slide{padding:3rem 1.25rem 2.5rem}.hero-row{gap:1.5rem}}
-@media print{
-  :root{--surface:#fff; --plane:#fff; --ink:#000; --ink2:#333; --muted:#666;
-    --grid:#e0e0e0; --axis:#bbb; --rule:#ddd}
-  body{font-size:9pt; line-height:1.34}
-  .slide{break-after:page; page-break-after:always; border:0; margin:0;
-    padding:0 0 .5rem; max-width:none}
-  .slide:last-child{break-after:auto; page-break-after:auto}
-  h1{font-size:21pt} h2{font-size:13.5pt} h3{font-size:10.5pt}
-  .fig{font-size:40pt} .lede,.sub{font-size:9pt}
-  table{font-size:8.5pt} th,td{padding:.22rem .4rem}
-  svg{margin:.4rem 0 .3rem; max-height:78vh}
-  details{display:none}
-  a{color:inherit; text-decoration:none}
-  @page{margin:9mm}
-}
-"""
 
 REPO = "https://github.com/abhaymettu/assessment-regressivity"
 
@@ -875,16 +765,12 @@ def build(f):
         + src(f'Full method, data and every script: <a href="{REPO}">'
               'github.com/abhaymettu/assessment-regressivity</a>')))
 
-    # Published under /research/ on abhaymettu.com, which asks external pages to
-    # carry their own way back in their own design rather than the section stylesheet.
-    footer = (
-        '<footer style="max-width:66rem;margin:0 auto;'
-        'padding:2.4rem clamp(1.25rem,5vw,4.5rem) 4rem;border-top:1px solid var(--rule);'
-        'display:flex;gap:1.6rem;flex-wrap:wrap;font-size:.8125rem;letter-spacing:.04em">'
-        '<a href="/research/" style="color:var(--muted);text-decoration:none">'
-        '&larr; All research</a>'
-        '<a href="/" style="color:var(--muted);text-decoration:none">abhaymettu.com</a>'
-        '</footer>\n')
+    # Published under /research/ on abhaymettu.com, which asks every page for a
+    # way back to the section and the home page. Styled by memo.css.
+    footer = ('<footer class="wrap">\n'
+              '<a href="/research/">&larr; All research</a>\n'
+              '<a href="/">abhaymettu.com</a>\n'
+              '</footer>\n')
 
     return ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
             '<title>Sales chasing and regressivity in Wisconsin property '
@@ -894,7 +780,18 @@ def build(f):
             '2024 sale prices onto the 2025 roll. Underneath it the roll is '
             'regressive, and the aggregate ratio the state certifies on cannot see '
             'either. Built only from public records.">\n'
-            f'<style>{CSS}</style>\n</head>\n<body>\n<main>\n'
+            '<link rel="preconnect" href="https://fonts.googleapis.com">\n'
+            '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
+            '<link href="https://fonts.googleapis.com/css2?family=Newsreader:'
+            'ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300;1,6..72,400'
+            '&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500'
+            '&display=swap" rel="stylesheet">\n'
+            '<link rel="stylesheet" href="/research/memo.css">\n'
+            '</head>\n<body>\n'
+            '<header class="top">\n'
+            '<div class="wrap breadcrumb"><a href="/">Abhay Mettu</a>'
+            '<span>/</span><a href="/research/">Research</a></div>\n'
+            '</header>\n<main>\n'
             + "".join(slides) + footer +
             '</main>\n</body>\n</html>\n')
 
@@ -932,7 +829,10 @@ def test():
             f"slide 07 claims the Cook reproduction holds, {y} PRB has drifted"
 
     # House style, and the one thing a build can silently break.
-    assert "—" not in page and "–" not in page, "a dash slipped into the page"
+    # House style: no em dashes anywhere on the site. Plain hyphens are fine, so
+    # this checks the two dash characters only, not "-".
+    assert "\u2014" not in page and "&mdash;" not in page, "an em dash got into the copy"
+    assert "\u2013" not in page and "&ndash;" not in page, "an en dash got into the copy"
     assert page.count('<section class="slide') == 9, \
         f"expected 9 slides, page has {page.count('<section class=slide')}"
     assert "http://" not in page, "an insecure link is in the page"
