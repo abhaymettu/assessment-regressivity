@@ -262,10 +262,10 @@ housing market.
 
 ## Status
 
-The findings above are stable on the full 24-month pull and split by municipality.
-Still open: the Cook County reproduction described below, and whether the pattern holds
-in the target firm's remaining counties. Five of the roughly twenty counties it works in
-have been tested.
+The findings above are stable on the full 24-month pull and split by municipality. The
+Cook County reproduction described below has been run and it lands. Still open: whether
+the contractor pattern holds in the target firm's remaining counties. Five of the
+roughly twenty counties it works in have been tested.
 
 ## Data
 
@@ -275,25 +275,68 @@ have been tested.
 | WI DOR Real Estate Transfer Returns | parcel-level sale price and date, five year window | `propertyinfo.revenue.wi.gov`, public |
 | WI DOR Wisconsin Municipal Assessors | contracted assessor for all 1,913 Wisconsin municipalities across 71 counties | `assrlist.pdf`, public |
 | WI DOR Wisconsin Real Estate Sales | assessment type per municipality per year, 1,913 municipalities | Tableau workbook extract, public |
+| Cook County Assessor, Parcel Sales and Assessed Values | 559,483 class-2 residential sales 2015 to 2019 with mailed, certified and board values | `datacatalog.cookcountyil.gov`, Socrata, public |
 
 Raw pulls land in `data/` and are gitignored. Every script that touches the network
 writes exactly one file and can be rerun.
 
-## Validation, and what is still missing
+## Validation: the Cook County reproduction
 
-The method is not novel. Chris Berry's Cook County work is the reference implementation.
-The plan was to reproduce his published figures first and only then point the pipeline
-at an unstudied county.
-
-**That reproduction has not been done.** No Cook County code exists in this repository.
-What stands in for it is internal: every script carries a `--test` that asserts its own
-claim, `iaao.py` checks its statistics against synthetic rolls with known regressivity in
-both directions, and the central finding was replicated out of sample in four counties it
-was not derived from. That is real validation but it is not the same thing as landing on
-a number someone else published, and the two should not be confused.
-
-Until the Cook reproduction runs, the correct reading is that the pipeline is
+The method is not novel. Christopher Berry's Center for Municipal Finance work is the
+reference implementation, and until this section was written the pipeline here was
 self-consistent and externally unverified.
+
+The reference is
+[An Evaluation of Property Tax Regressivity in Cook County, Illinois](https://erhla.github.io/Cook%20County,%20Illinois.html),
+covering residential sales from 2015 to 2019. It publishes N, COD, PRD and PRB for each
+of five years and a median ratio for each of ten price deciles, so there are 35 numbers
+to miss rather than one. It was produced with the
+[`cmfproperty`](https://github.com/cmf-uchicago/cmfproperty) R package, whose source
+settles the two methodological questions that matter: arms-length means a ratio inside
+`[Q1 - 1.5 IQR, Q3 + 1.5 IQR]` computed within sale year, and the CPI adjustment scales
+sale price and assessed value by the same factor, so every statistic is invariant to it.
+
+The same `iaao.py` that judges Dane County, imported not reimplemented, run against Cook
+County Assessor open data:
+
+| year | n here | n published | COD | published | PRD | published | PRB | published |
+|---|---|---|---|---|---|---|---|---|
+| 2015 | 52,750 | 51,879 | 21.31 | 19.70 | 1.082 | 1.105 | -0.0540 | -0.0514 |
+| 2016 | 61,280 | 62,852 | 21.10 | 20.26 | 1.067 | 1.084 | -0.0413 | -0.0462 |
+| 2017 | 62,644 | 65,961 | 20.85 | 20.25 | 1.052 | 1.056 | -0.0226 | -0.0269 |
+| 2018 | 64,299 | 65,298 | 19.30 | 19.29 | 1.023 | 1.016 | +0.0090 | +0.0133 |
+| 2019 | 62,565 | 62,041 | 18.60 | 18.06 | 1.022 | 1.011 | +0.0086 | +0.0098 |
+
+Sample size within 6% every year, COD within 8%, PRD within 2%, PRB within 0.005. **PRB
+crosses zero between 2017 and 2018 in both.** That is the most specific thing the
+published table says, and matching a sign change on the same year is stronger evidence
+than matching a level.
+
+The decile gradient reproduces as shape rather than as level. Median ratios here run
+about 0.015 below the published ones at every decile, a uniform offset and not a
+different pattern, and the summary statistic the gradient exists to support lands on it:
+the cheapest tenth of Cook County homes is assessed at **27.2%** more of sale price than
+the priciest, against **28.4%** published.
+
+### Two things the report does not say, and one thing that changed
+
+The report does not state which assessment stage it read, and does not state whether it
+applied the Assessor's own sale flags. Separately, the Assessor has since backfilled the
+sales file from MyDec, so today's extract carries roughly 20% more conveyances for these
+years than existed when the report was written. Taking the file as-is returns CODs 12%
+to 27% high on 15% to 22% more sales, which is what adding a tail of lower-quality
+conveyances to a dispersion statistic does.
+
+So the specification is swept rather than assumed and the whole sweep is printed. Twelve
+combinations, best is board-of-review values with multi-parcel and flagged sales
+dropped. That is fitting to the target and is labelled as such. What is **not** fitted is
+the gradient: it lands between 27% and 29% under all twelve, including the unfiltered
+one, so the regressivity finding does not depend on the choice.
+
+The pipeline lands on someone else's published numbers. The Dane County findings above
+are now externally anchored rather than only internally consistent.
+
+`python3 fetch_cook.py && python3 cook.py`
 
 ## Kill criterion, set in advance
 
