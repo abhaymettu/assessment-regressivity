@@ -16,7 +16,7 @@ rather than across the whole roll.
 
 ## Findings
 
-Five, on 5,821 chase-free arms-length residential sales joined to the 2025 roll. The
+Six, on 5,821 chase-free arms-length residential sales joined to the 2025 roll. The
 first was not the question the project set out to ask, and it changed how the rest had
 to be measured.
 
@@ -176,10 +176,47 @@ Belleville contract Accurate Appraisal and do not chase, but their assessment le
 0.653 and 0.667. They did not revalue, so no assessment was set that could have been
 copied from a sale.
 
-This is the version of the finding worth acting on. It is not a claim about six town
-halls, it is a claim about one contractor's methodology and one city assessor's office.
+That points at the contractor rather than the town hall. Finding 6 tests it outside Dane
+County and narrows it: the firm does not chase everywhere it works, but no other
+contractor chases anywhere.
 
 `python3 assessors.py`
+
+### 6. Replicated out of sample, and it narrowed the claim
+
+Five Dane County municipalities are a thin base for a statement about a firm, and Dane is
+where the pattern was found, so it cannot also be the evidence for it. Accurate Appraisal
+serves 112 municipalities statewide, so the same measurement was re-run in four counties
+picked only for having enough of them: Walworth, Columbia, Outagamie and Jefferson. The
+RETR files were already statewide, so the sales side needed no new download. Columbia has
+no municipality with enough pre-lien sales and drops out.
+
+**Outside Dane the exclusivity held and the universality did not.** The firm's
+municipalities chase at 44% (4 of 9), against **0 of 12** for every other contractor. So
+the Dane result overstated it: the firm does not chase everywhere it works.
+
+Pooled across all five counties:
+
+| assessment level | Accurate Appraisal LLC | every other contractor |
+|---|---|---|
+| at or above 0.85 | 9 of 14 | **0 of 19** |
+| at or above 0.95 | 9 of 11 | **0 of 10** |
+| at or above 0.98 | **8 of 8** | **0 of 5** |
+
+All 10 chasing municipalities across five counties are either Accurate Appraisal's (9) or
+the City of Madison's in-house office (1). No municipality assessed by any other
+contractor chases, in any county, at any assessment level.
+
+Within the firm's own portfolio the practice tracks the assessment level. It happens
+where a municipality is held at full market value and not where assessments have drifted,
+which is what annual maintenance by copying sale prices would look like: a jurisdiction
+between revaluations is not touching individual parcels at all.
+
+So the defensible claim is conditional, not universal. Chasing is confined to one
+contractor plus one in-house office, and within that contractor it appears where the
+municipality is maintained at full market value.
+
+`python3 replication.py`
 
 ### What the time adjustment cost
 
@@ -191,9 +228,10 @@ housing market.
 ## Status
 
 The findings above are stable on the full 24-month pull and split by municipality.
-Still open: the Cook County reproduction described below, and whether the Accurate
-Appraisal pattern holds in the other Wisconsin counties it serves, which the same two
-public sources would answer without new methods.
+Still open: the Cook County reproduction described below, and why the practice appears in
+some of the firm's municipalities and not others. Assessment level predicts it well, but
+Wisconsin publishes revaluation type by municipality and year, which would test that
+directly rather than by proxy.
 
 ## Data
 
@@ -201,7 +239,7 @@ public sources would answer without new methods.
 |---|---|---|
 | Wisconsin Statewide Parcels DB (WI DOA) | 169,025 class-1 residential parcels in Dane County, 2025 roll, with assessed value, land and improvement split, tax, address, coordinates | ArcGIS FeatureServer, public |
 | WI DOR Real Estate Transfer Returns | parcel-level sale price and date, five year window | `propertyinfo.revenue.wi.gov`, public |
-| WI DOR Wisconsin Municipal Assessors | contracted assessor for all 60 Dane County municipalities | `assrlist.pdf`, public |
+| WI DOR Wisconsin Municipal Assessors | contracted assessor for all 1,913 Wisconsin municipalities across 71 counties | `assrlist.pdf`, public |
 
 Raw pulls land in `data/` and are gitignored. Every script that touches the network
 writes exactly one file and can be rerun.

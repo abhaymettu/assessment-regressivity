@@ -28,7 +28,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "data")
 RATIOS = os.path.join(DATA, "ratios.csv")
-ROSTER = os.path.join(DATA, "assessors_dane.csv")
+ROSTER = os.path.join(DATA, "assessors_wi.csv")
 PARCELS = os.path.join(DATA, "parcels_dane.csv")
 PDF = os.path.join(DATA, "assrlist.pdf")
 
@@ -76,28 +76,31 @@ def extract():
         for page in pdf.pages:
             for line in (page.extract_text(layout=True) or "").splitlines():
                 line = " ".join(line.split())
-                m = re.match(r"^(.+?) ([TVC]) DANE (.+)$", line)
+                m = re.match(r"^(.+?) ([TVC]) ([A-Z][A-Z ]+?) ((?:PO BOX|\d|[NWES]\d).*|.+)$",
+                             line)
                 if not m:
                     continue
-                place, kind, rest = m.groups()
+                place, kind, county, rest = m.groups()
                 # The firm name runs until the address starts. Addresses begin with a
                 # PO box, a house number, or a fire-number like N5375.
                 firm = re.split(r"\s(?=PO BOX\b|\d+\s|[NWES]\d+\s)", rest, maxsplit=1)[0]
-                rows.append({"municipality": place.strip(),
+                rows.append({"county": county.strip(),
+                             "municipality": place.strip(),
                              "kind": KIND[kind],
                              "firm": fold_firm(firm)})
     with open(ROSTER, "w", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=["municipality", "kind", "firm"])
+        w = csv.DictWriter(fh, fieldnames=["county", "municipality", "kind", "firm"])
         w.writeheader()
         w.writerows(rows)
-    print(f"wrote {ROSTER} with {len(rows)} Dane County municipalities")
+    print(f"wrote {ROSTER} with {len(rows)} municipalities statewide")
     return rows
 
 
-def load_roster():
+def load_roster(county="DANE"):
     with open(ROSTER, newline="") as fh:
         return {(norm(r["municipality"]), r["kind"]): r["firm"]
-                for r in csv.DictReader(fh)}
+                for r in csv.DictReader(fh)
+                if r["county"].strip().upper() == county.upper()}
 
 
 def assessment_levels():

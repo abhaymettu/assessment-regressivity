@@ -1,9 +1,10 @@
-"""Pull Dane County class-1 residential parcels from the WI DOA statewide parcel layer.
+"""Pull class-1 residential parcels from the WI DOA statewide parcel layer.
 
-Writes data/parcels_dane.csv. Resumable: if the output exists, already-fetched offsets
-are skipped, so a dropped connection costs one page rather than the whole pull.
+Writes data/parcels_<county>.csv. Resumable: if the output exists, already-fetched
+offsets are skipped, so a dropped connection costs one page rather than the whole pull.
 
-    python3 fetch_parcels.py
+    python3 fetch_parcels.py                    (Dane)
+    python3 fetch_parcels.py WALWORTH COLUMBIA  (any counties, by name)
     python3 fetch_parcels.py --test
 """
 
@@ -19,7 +20,11 @@ SERVICE = (
     "https://services3.arcgis.com/n6uYoouQZW75n5WI/arcgis/rest/services/"
     "Wisconsin_Statewide_Parcels_DB/FeatureServer/0/query"
 )
-WHERE = "CONAME='DANE' AND PROPCLASS='1'"
+COUNTY = "DANE"
+
+
+def where():
+    return f"CONAME='{COUNTY}' AND PROPCLASS='1'"
 FIELDS = [
     "STATEID", "PARCELID", "TAXPARCELID", "TAXROLLYEAR",
     "SITEADRESS", "PLACENAME", "ZIPCODE", "SCHOOLDIST",
@@ -27,7 +32,11 @@ FIELDS = [
     "PROPCLASS", "ASSDACRES", "LONGITUDE", "LATITUDE",
 ]
 PAGE = 2000
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "parcels_dane.csv")
+DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+
+
+def out_path():
+    return os.path.join(DATA, f"parcels_{COUNTY.lower().replace(' ', '_')}.csv")
 
 
 def query(params, tries=4):
@@ -48,12 +57,12 @@ def query(params, tries=4):
 
 
 def count():
-    return query({"where": WHERE, "returnCountOnly": "true", "f": "json"})["count"]
+    return query({"where": where(), "returnCountOnly": "true", "f": "json"})["count"]
 
 
 def page(offset):
     body = query({
-        "where": WHERE,
+        "where": where(),
         "outFields": ",".join(FIELDS),
         "returnGeometry": "false",
         "orderByFields": "STATEID",
@@ -66,22 +75,22 @@ def page(offset):
 
 def already_have():
     """Rows already written, so a rerun resumes instead of starting over."""
-    if not os.path.exists(OUT):
+    if not os.path.exists(out_path()):
         return 0
-    with open(OUT, newline="") as fh:
+    with open(out_path(), newline="") as fh:
         return max(sum(1 for _ in fh) - 1, 0)
 
 
 def main():
     total = count()
     done = already_have()
-    print(f"{total} parcels, {done} already written")
+    print(f"{COUNTY}: {total} parcels, {done} already written")
     if done >= total:
         print("nothing to do")
         return
 
     mode = "a" if done else "w"
-    with open(OUT, mode, newline="") as fh:
+    with open(out_path(), mode, newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=FIELDS, extrasaction="ignore")
         if not done:
             w.writeheader()
@@ -95,7 +104,7 @@ def main():
             fh.flush()
             offset += len(rows)
             print(f"  {offset}/{total}", end="\r", flush=True)
-    print(f"\nwrote {OUT}")
+    print(f"\nwrote {out_path()}")
 
 
 def test():
@@ -116,4 +125,10 @@ def test():
 
 
 if __name__ == "__main__":
-    test() if "--test" in sys.argv else main()
+    if "--test" in sys.argv:
+        test()
+    else:
+        counties = [a.upper() for a in sys.argv[1:] if not a.startswith("-")] or ["DANE"]
+        for c in counties:
+            COUNTY = c
+            main()
