@@ -16,9 +16,9 @@ rather than across the whole roll.
 
 ## Findings
 
-Three, on 5,821 chase-free arms-length residential sales joined to the 2025 roll. The
-first was not the question the project set out to ask, and it changed how the other two
-had to be measured.
+Four, on 5,821 chase-free arms-length residential sales joined to the 2025 roll. The
+first was not the question the project set out to ask, and it changed how the rest had
+to be measured.
 
 ### 1. The assessor copied 2024 sale prices onto the roll
 
@@ -82,6 +82,65 @@ safe arbiter at this dispersion, so the direct slope is reported beside it.
 
 `python3 prb_bias.py`
 
+### 4. Chasing is a municipal choice, and six offices make it
+
+Wisconsin assesses at the municipal level, and Dane County holds 60 assessing
+jurisdictions. If the sale prices were being written into the parcel layer by some
+county or state process, every municipality would chase at about the same rate and this
+would be a finding about a data pipeline rather than about assessment practice.
+
+They do not. Across the 18 municipalities with enough pre-lien sales to measure:
+
+| municipality | n | assessed to the dollar | pre-lien median ratio |
+|---|---|---|---|
+| Windsor, Village of | 163 | 82.2% | 1.0000 |
+| McFarland, Village of | 130 | 81.5% | 1.0000 |
+| Oregon, Village of | 199 | 80.9% | 1.0000 |
+| Monona, City of | 87 | 80.5% | 1.0000 |
+| Stoughton, City of | 223 | 72.2% | 1.0000 |
+| **Madison, City of** | **2,909** | **69.0%** | **1.0000** |
+| Mount Horeb, Village of | 106 | 0.9% | 0.9101 |
+| Verona, City of | 218 | 0.9% | 0.9219 |
+| DeForest, Village of | 247 | 0.8% | 0.9437 |
+| Sun Prairie, City of | 551 | 0.7% | 0.9043 |
+| Fitchburg, City of | 420 | 0.2% | 0.9981 |
+| Middleton (Town), Waunakee, Middleton (City), Cottage Grove, Cross Plains, Belleville, Dunn | 62 to 304 each | 0.0% | 0.68 to 1.01 |
+
+It is not a gradient. Six municipalities sit at **69% or above**, twelve sit at **0.9% or
+below**, and **nothing occupies the 68 points between them**. Chasing is a practice an
+assessing office either uses or does not, and six of them do, including the City of
+Madison on 2,909 sales.
+
+### Regressivity is everywhere, and it is not caused by the chasing
+
+On chase-free sales, all 11 municipalities with 100 or more usable sales have a negative
+slope. Range -0.516 to -0.050, median -0.159.
+
+| municipality | n | median ratio | COD | slope |
+|---|---|---|---|---|
+| Windsor, Village of | 114 | 0.969 | 33.3 | -0.516 |
+| Sun Prairie, City of | 434 | 0.874 | 19.1 | -0.473 |
+| Stoughton, City of | 212 | 0.952 | 22.6 | -0.413 |
+| McFarland, Village of | 109 | 0.969 | 20.9 | -0.283 |
+| DeForest, Village of | 170 | 0.896 | 16.5 | -0.273 |
+| Verona, City of | 187 | 0.906 | 14.0 | -0.159 |
+| Fitchburg, City of | 360 | 0.963 | 17.1 | -0.134 |
+| Oregon, Village of | 164 | 1.012 | 20.4 | -0.134 |
+| Waunakee, Village of | 211 | 0.961 | 18.8 | -0.108 |
+| Middleton, City of | 269 | 0.736 | 22.4 | -0.060 |
+| Madison, City of | 2,473 | 0.979 | 12.2 | -0.050 |
+
+Two things fall out of this. The county-wide regressivity result is not an aggregation
+artifact, since it holds in all ten municipalities outside Madison. And Madison, the
+heaviest chaser by volume, is the **least** regressive jurisdiction in the table once its
+chased sales are removed.
+
+The correlation between chasing rate and regressivity slope across the 11 municipalities
+measurable on both is **r = -0.27**. Weak. These are two separate problems, and stopping
+the chasing would not fix the regressivity.
+
+`python3 municipalities.py`
+
 ### What the time adjustment cost
 
 Fitting the market trend on all sales returns 14.3% annual price growth for Dane County.
@@ -91,9 +150,9 @@ housing market.
 
 ## Status
 
-The three findings above are stable on the full 24-month pull. Still open: the Cook
-County reproduction described below, and municipality-level breakdowns within the
-county.
+The findings above are stable on the full 24-month pull and split by municipality.
+Still open: the Cook County reproduction described below, and whether the six chasing
+offices share an assessment contractor, which the state's assessor roster would answer.
 
 ## Data
 
