@@ -9,6 +9,7 @@ no font, which is what makes it safe to hand to someone who will open it once an
 it on the first screen.
 
     python3 memo.py
+    python3 memo.py --out <path>/index.html
     python3 memo.py --test
 """
 
@@ -874,6 +875,17 @@ def build(f):
         + src(f'Full method, data and every script: <a href="{REPO}">'
               'github.com/abhaymettu/assessment-regressivity</a>')))
 
+    # Published under /research/ on abhaymettu.com, which asks external pages to
+    # carry their own way back in their own design rather than the section stylesheet.
+    footer = (
+        '<footer style="max-width:66rem;margin:0 auto;'
+        'padding:2.4rem clamp(1.25rem,5vw,4.5rem) 4rem;border-top:1px solid var(--rule);'
+        'display:flex;gap:1.6rem;flex-wrap:wrap;font-size:.8125rem;letter-spacing:.04em">'
+        '<a href="/research/" style="color:var(--muted);text-decoration:none">'
+        '&larr; All research</a>'
+        '<a href="/" style="color:var(--muted);text-decoration:none">abhaymettu.com</a>'
+        '</footer>\n')
+
     return ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
             '<title>Sales chasing and regressivity in Wisconsin property '
             'assessment</title>\n'
@@ -883,17 +895,19 @@ def build(f):
             'regressive, and the aggregate ratio the state certifies on cannot see '
             'either. Built only from public records.">\n'
             f'<style>{CSS}</style>\n</head>\n<body>\n<main>\n'
-            + "".join(slides) +
+            + "".join(slides) + footer +
             '</main>\n</body>\n</html>\n')
 
 
-def render():
+def render(out=None):
+    """`out` lets the same build target the published copy without a second source."""
+    out = out or OUT
     f = gather()
     page = build(f)
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    with open(OUT, "w") as fh:
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    with open(out, "w") as fh:
         fh.write(page)
-    print(f"wrote {OUT}  ({len(page):,} bytes)")
+    print(f"wrote {out}  ({len(page):,} bytes)")
     return f, page
 
 
@@ -932,5 +946,11 @@ def test():
     print(f"ok: 9 slides, 6 charts, every headline figure recomputed from the scripts")
 
 
+def out_arg():
+    if "--out" in sys.argv:
+        return os.path.abspath(sys.argv[sys.argv.index("--out") + 1])
+    return None
+
+
 if __name__ == "__main__":
-    test() if "--test" in sys.argv else render()
+    test() if "--test" in sys.argv else render(out_arg())
