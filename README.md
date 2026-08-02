@@ -16,7 +16,7 @@ rather than across the whole roll.
 
 ## Findings
 
-Four, on 5,821 chase-free arms-length residential sales joined to the 2025 roll. The
+Five, on 5,821 chase-free arms-length residential sales joined to the 2025 roll. The
 first was not the question the project set out to ask, and it changed how the rest had
 to be measured.
 
@@ -141,6 +141,46 @@ the chasing would not fix the regressivity.
 
 `python3 municipalities.py`
 
+### 5. It tracks the contractor, not the municipality
+
+Wisconsin municipalities mostly contract their assessor rather than employing one, so
+the six chasers may be six choices or one vendor's method. Joining the chasing rates to
+the [Wisconsin DOR municipal assessor roster](https://www.revenue.wi.gov/Dor%20publications/assrlist.pdf)
+answers it.
+
+First a control. A municipality that did not revalue for 2025 set no new assessments, so
+it could not chase and is not evidence either way. The state publishes an estimated fair
+market value per parcel, and its ratio to assessed value is the assessment level,
+computed independently of any sale used in this repo. Five of the eighteen sit between
+0.65 and 0.78 and are excluded.
+
+Among the thirteen that did revalue:
+
+| assessor | chases | of |
+|---|---|---|
+| **Accurate Appraisal LLC** | **5** | **5** |
+| Michelle Drea (Madison, in-house) | 1 | 1 |
+| Associated Appraisal Consultants | 0 | 3 |
+| Samuel Monroe | 0 | 1 |
+| Peter Krystowiak | 0 | 1 |
+| Chris Leitz | 0 | 1 |
+| Paul Musser | 0 | 1 |
+
+Accurate Appraisal LLC chases in **every revalued municipality it assesses**: Windsor,
+McFarland, Oregon, Monona and Stoughton, at rates of 72% to 82%. Every other contractor
+chases in none of theirs. Madison, the one jurisdiction here that assesses in house,
+also chases, at 69% on 2,909 sales.
+
+The two apparent counterexamples dissolved under the control. Cross Plains and
+Belleville contract Accurate Appraisal and do not chase, but their assessment levels are
+0.653 and 0.667. They did not revalue, so no assessment was set that could have been
+copied from a sale.
+
+This is the version of the finding worth acting on. It is not a claim about six town
+halls, it is a claim about one contractor's methodology and one city assessor's office.
+
+`python3 assessors.py`
+
 ### What the time adjustment cost
 
 Fitting the market trend on all sales returns 14.3% annual price growth for Dane County.
@@ -151,8 +191,9 @@ housing market.
 ## Status
 
 The findings above are stable on the full 24-month pull and split by municipality.
-Still open: the Cook County reproduction described below, and whether the six chasing
-offices share an assessment contractor, which the state's assessor roster would answer.
+Still open: the Cook County reproduction described below, and whether the Accurate
+Appraisal pattern holds in the other Wisconsin counties it serves, which the same two
+public sources would answer without new methods.
 
 ## Data
 
@@ -160,6 +201,7 @@ offices share an assessment contractor, which the state's assessor roster would 
 |---|---|---|
 | Wisconsin Statewide Parcels DB (WI DOA) | 169,025 class-1 residential parcels in Dane County, 2025 roll, with assessed value, land and improvement split, tax, address, coordinates | ArcGIS FeatureServer, public |
 | WI DOR Real Estate Transfer Returns | parcel-level sale price and date, five year window | `propertyinfo.revenue.wi.gov`, public |
+| WI DOR Wisconsin Municipal Assessors | contracted assessor for all 60 Dane County municipalities | `assrlist.pdf`, public |
 
 Raw pulls land in `data/` and are gitignored. Every script that touches the network
 writes exactly one file and can be rerun.
