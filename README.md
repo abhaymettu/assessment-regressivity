@@ -14,41 +14,86 @@ Ratio Studies: sales ratio per property, then coefficient of dispersion, price-r
 differential and price-related bias, computed within price decile and neighborhood
 rather than across the whole roll.
 
-## Status
+## Findings
 
-Preliminary, on two months of sales out of a twenty-four month window. The direction is
-clear and the magnitude is not yet settled.
+Three, on 5,821 chase-free arms-length residential sales joined to the 2025 roll. The
+first was not the question the project set out to ask, and it changed how the other two
+had to be measured.
 
-On 739 arms-length residential sales joined to the 2025 roll:
+### 1. The assessor copied 2024 sale prices onto the roll
+
+**39.6%** of sales conveyed before the 1 January 2025 lien date carry an assessed value
+equal to the sale price **to the dollar**. For sales conveyed after that date it is
+**1.0%**, a gap of 39 to 1. Every single month of 2024 returns a median assessment ratio
+of exactly 1.0000.
+
+The lien date supplies the control group for free: sales after it could not have
+informed a roll that was already fixed. The share by conveyance month falls off a cliff
+exactly there, 41.6% in December 2024 to 6.0% in January to 0.1% by May, with the
+January and February residue being the lag between conveyance and recording.
+
+This is sales chasing, and it matters twice. Sold parcels were corrected to market while
+their unsold neighbours were not, so identical houses now carry different assessments
+according to whether one happened to change hands. And any ratio study drawing on 2024
+sales grades the assessor using the very parcels the assessor already copied.
+
+`python3 chasing.py`
+
+### 2. The roll is regressive, and the state's certified statistic cannot see it
+
+Measured only on sales the assessor could not have chased, and with prices restated to
+the lien date:
 
 | statistic | estimate | 95% CI | IAAO range | verdict |
 |---|---|---|---|---|
-| median ratio | 0.960 | 0.950 to 0.970 | 0.90 to 1.10 | passes |
-| COD | 14.06 | 12.74 to 15.50 | 5.0 to 15.0 | inconclusive |
-| PRD | 1.039 | 1.027 to 1.052 | 0.98 to 1.03 | inconclusive |
-| PRB | -0.063 | -0.104 to -0.028 | -0.05 to 0.05 | inconclusive |
+| median ratio | 0.933 | 0.929 to 0.938 | 0.90 to 1.10 | passes |
+| COD | 18.44 | 17.84 to 19.04 | 5.0 to 15.0 | **FAILS** |
+| PRD | 1.040 | 1.035 to 1.045 | 0.98 to 1.03 | **FAILS** |
+| PRB (IAAO) | +0.024 | 0.011 to 0.038 | -0.05 to 0.05 | passes |
+| direct slope | -0.118 | -0.142 to -0.092 | -0.05 to 0.05 | **FAILS** |
 
-Median ratio by sale-price decile falls from **1.000** in the cheapest tenth to
-**0.899** in the priciest. The cheapest tenth carries an assessment ratio 11.2% higher
-than the priciest tenth.
+Median ratio falls monotonically across sale-price deciles, from **0.983** in the
+cheapest tenth to **0.853** in the priciest. The cheapest tenth of Dane County homes is
+assessed at **15.2% more** of its sale price than the priciest tenth.
 
-The aggregate ratio, which is the statistic the state certifies on, is **0.914**, and
-it is the same number whether that burden is spread evenly or concentrated.
+The aggregate ratio, which is the statistic the state certifies on, is **0.860**. It is
+a single figure for the whole jurisdiction and takes the same value whether that burden
+is spread evenly or concentrated on the cheapest homes.
 
-Both PRD and PRB have point estimates outside the IAAO range and confidence intervals
-that straddle the boundary, so neither is called a failure yet. Two months is a tenth
-of the intended sample. The remaining twenty-two months are what settle it, and they
-are the next step rather than a caveat to be waved away.
+`python3 iaao.py`
 
-### Time bias, to handle before the window widens
+### 3. PRB, the statistic IAAO added to be robust, loses its sign here
 
-These two months of sales sit immediately after the 1 January 2025 assessment date, so
-sale price and assessed value refer to nearly the same moment. Extending the window
-back through 2024 compares 2025 assessments against older prices in a rising market,
-which mechanically depresses ratios for earlier sales. IAAO handles this with a time
-adjustment, and the ratios need one before the full window is analysed. Skipping it
-would manufacture regressivity if cheaper homes turn over at different times of year
-than expensive ones.
+PRB says progressive. The decile table, PRD, and a direct regression all say regressive.
+PRB regresses ratio deviation on a value proxy built partly from the assessed value it
+is testing, so a parcel assessed too high gets both a high y and a high x.
+
+Simulating rolls whose true regressivity is fixed at -0.118 per doubling and dialling up
+assessment noise, PRB slides from -0.129 at COD 6 to +0.125 at COD 30, crossing zero
+near COD 22, while a price-only proxy and the direct slope stay flat at -0.12
+throughout.
+
+At Dane County's COD of 18.4 the mechanism accounts for a 56% attenuation but leaves PRB
+negative, against +0.024 observed. So proxy contamination explains most of the collapse
+in magnitude and **not** the whole change of sign. What closes the remaining gap is not
+settled here; heteroscedastic noise tilted toward cheaper property was tried and moved
+PRB by less than 0.01. The operational conclusion does not depend on it: PRB is not a
+safe arbiter at this dispersion, so the direct slope is reported beside it.
+
+`python3 prb_bias.py`
+
+### What the time adjustment cost
+
+Fitting the market trend on all sales returns 14.3% annual price growth for Dane County.
+On post-lien sales, 13.8%. On chase-free sales, **6.0%**, which is the credible figure.
+Two of those three are artifacts of the assessor's clerical practice rather than the
+housing market.
+
+## Status
+
+The three findings above are stable on the full 24-month pull. Still open: the Cook
+County reproduction described below, and municipality-level breakdowns within the
+county.
 
 ## Data
 

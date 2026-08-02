@@ -10,7 +10,9 @@ rather than applied silently.
 """
 
 import csv
+import datetime
 import glob
+import math
 import os
 import sys
 
@@ -32,6 +34,32 @@ RESIDENTIAL = {"Land and buildings/improvements", "Condominium"}
 RATIO_FLOOR, RATIO_CEIL = 0.10, 3.00
 MIN_PRICE = 1000
 
+# Assessed values on the 2025 roll are fixed as of the 1 January 2025 lien date, but
+# sales run either side of it. In a rising market a 2024 sale is compared against an
+# assessment set later and at a higher level, which inflates its ratio for reasons that
+# have nothing to do with how the assessor treated that house.
+#
+# Because the assessment is fixed at the lien date, the drift of the ratio against sale
+# date is itself an estimate of market movement. Fitting log ratio on months from the
+# lien date recovers it, and every price is then restated as of the lien date. IAAO
+# calls this a time adjustment and treats it as mandatory whenever the sale window is
+# wider than a few months.
+LIEN_DATE = datetime.date(2025, 1, 1)
+WINDOW_START = datetime.date(2024, 1, 1)
+WINDOW_END = datetime.date(2025, 12, 31)
+
+# The assessor set the 2025 roll with 2024 sale prices in hand and, for a large share of
+# them, simply adopted the sale price as the assessed value. Those parcels have a ratio
+# of exactly 1.000 by construction, and including them measures the assessor's clerical
+# behaviour rather than the accuracy of the roll. See chasing.py for the measurement.
+#
+# The share of sales assessed at exactly their sale price, by conveyance month:
+#   2024-12  41.6%     2025-01  6.0%     2025-03  1.4%     2025-05  0.1%
+# The cliff sits at the lien date. January and February still carry a residue, which is
+# what a lag between conveyance and recording produces, so the study window opens in
+# March rather than January.
+CHASE_FREE_START = datetime.date(2025, 3, 1)
+
 
 def parcel_key(retr_parcel):
     """RETR writes '\\t251/070926102199'. The roll keys on the part after the slash."""
@@ -41,6 +69,37 @@ def parcel_key(retr_parcel):
 def money(s):
     s = (s or "").strip().replace("$", "").replace(",", "")
     return float(s) if s else 0.0
+
+
+def parse_date(s):
+    try:
+        return datetime.datetime.strptime(s.strip(), "%m-%d-%Y").date()
+    except ValueError:
+        return None
+
+
+def months_from_lien(d):
+    return (d.year - LIEN_DATE.year) * 12 + (d.month - LIEN_DATE.month) + (d.day - 1) / 30.44
+
+
+def fit_time_trend(rows):
+    """OLS slope of log ratio on months from the lien date.
+
+    Negative slope means ratios fall as sale dates get later, which is what a rising
+    market produces when the assessment is held fixed. Returned as monthly log change.
+
+    Fitted on chase-free sales only. Earlier sales carry assessed values the assessor
+    set with those very sale prices in hand, so including them fits the sales-chasing
+    step rather than the market. Fitting on all of 2024 and 2025 returns 14.3% annual
+    price growth; on post-lien sales 13.8%; on the chase-free window the figure below.
+    Two of those three are artifacts of the assessor's clerical practice.
+    """
+    xs = [r["months"] for r in rows]
+    ys = [math.log(r["ratio"]) for r in rows]
+    n = len(xs)
+    mx, my = sum(xs) / n, sum(ys) / n
+    sxx = sum((x - mx) ** 2 for x in xs)
+    return sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / sxx
 
 
 def load_parcels():
@@ -67,11 +126,19 @@ def build():
     funnel = {"dane transfers": len(transfers)}
     rows, dropped = [], {"not residential": 0, "not arms-length": 0,
                          "no price": 0, "unmatched parcel": 0,
-                         "no assessed value": 0, "ratio out of range": 0}
+                         "no assessed value": 0, "ratio out of range": 0,
+                         "outside sale window": 0}
 
     for t in transfers:
         if t["Property Type"].strip() not in RESIDENTIAL:
             dropped["not residential"] += 1
+            continue
+        sold = parse_date(t["Conveyance Date"])
+        if sold is None or not (WINDOW_START <= sold <= WINDOW_END):
+            # A monthly file is keyed on the recording date, so it carries a tail of
+            # conveyances from well before the window. Those are stale relative to the
+            # lien date and the time adjustment would have to extrapolate for them.
+            dropped["outside sale window"] += 1
             continue
         if (t["Conveyance Type"].strip() not in ARMS_CONVEYANCE
                 or t["Grantor/Grantee Relationship"].strip() not in ARMS_RELATIONSHIP):
@@ -98,7 +165,10 @@ def build():
             "municipality": t["Municipality"].strip(),
             "address": p["SITEADRESS"] or t["Physical Address"].strip(),
             "school_district": p["SCHOOLDIST"],
-            "conveyance_date": t["Conveyance Date"].strip(),
+            "conveyance_date": sold.isoformat(),
+            "months": round(months_from_lien(sold), 4),
+            "post_lien": int(sold >= LIEN_DATE),
+            "study": int(sold >= CHASE_FREE_START),
             "sale_price": round(price, 2),
             "assessed": round(assessed, 2),
             "land": money(p["LNDVALUE"]),
@@ -112,6 +182,13 @@ def build():
     funnel.update(dropped)
     funnel["usable sales"] = len(rows)
 
+    post = [r for r in rows if r["study"]]
+    slope = fit_time_trend(post)
+    for r in rows:
+        # Restate the price as of the lien date, then re-derive the ratio from it.
+        r["price_adj"] = round(r["sale_price"] * math.exp(slope * r["months"]), 2)
+        r["ratio_adj"] = round(r["assessed"] / r["price_adj"], 6)
+
     with open(OUT, "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(rows[0]))
         w.writeheader()
@@ -120,6 +197,12 @@ def build():
     print(f"{len(files)} monthly RETR files")
     for k, v in funnel.items():
         print(f"  {k:>22}: {v}")
+    annual = (math.exp(-slope * 12) - 1) * 100
+    print(f"\n{len(post)} chase-free sales usable for the ratio study, "
+          f"{len(rows) - len(post)} earlier sales retained only to measure chasing")
+    print(f"time trend fitted on chase-free sales: log ratio moves {slope:+.5f} per month,")
+    print(f"  implying Dane County residential prices rose {annual:.1f}% a year.")
+    print(f"  Prices are restated to 1 January 2025 before any ratio is used.")
     print(f"wrote {OUT}")
     return rows
 

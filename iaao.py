@@ -41,15 +41,26 @@ IAAO = {
     "cod": (5.0, 15.0),
     "prd": (0.98, 1.03),
     "prb": (-0.05, 0.05),
+    # Not an IAAO statistic. The same neutral band as PRB is applied so the two are
+    # read on the same footing, since they are meant to measure the same thing.
+    "direct": (-0.05, 0.05),
 }
 
 
 def load():
+    """Chase-free, time-adjusted sales only.
+
+    Sales the assessor had in hand when setting the roll have a ratio of exactly 1.000
+    by construction and would drag every statistic here toward a false clean bill.
+    Prices are the lien-date-adjusted ones, so a sale in November is not penalised for
+    happening eleven months after the assessment it is being judged against.
+    """
     with open(RATIOS, newline="") as fh:
-        return [{"ratio": float(r["ratio"]),
-                 "price": float(r["sale_price"]),
+        return [{"ratio": float(r["ratio_adj"]),
+                 "price": float(r["price_adj"]),
                  "assessed": float(r["assessed"]),
-                 "municipality": r["municipality"]} for r in csv.DictReader(fh)]
+                 "municipality": r["municipality"]}
+                for r in csv.DictReader(fh) if r["study"] == "1"]
 
 
 def median_ratio(rows):
@@ -91,6 +102,18 @@ def prb(rows):
     sxx = sum((x - mx) ** 2 for x in xs)
     sxy = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
     return sxy / sxx
+
+
+def direct(rows):
+    """Slope of log ratio on log2 price. Regressivity with nothing borrowed from the
+    assessed value, which is what makes it trustworthy where PRB is not. Reads as the
+    log change in assessment ratio per doubling of price."""
+    xs = [math.log(r["price"], 2) for r in rows]
+    ys = [math.log(r["ratio"]) for r in rows]
+    n = len(xs)
+    mx, my = sum(xs) / n, sum(ys) / n
+    sxx = sum((x - mx) ** 2 for x in xs)
+    return sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / sxx
 
 
 def boot_ci(rows, fn, reps=BOOTSTRAP, alpha=0.05):
@@ -141,7 +164,8 @@ def report(rows):
     n = len(rows)
     print(f"Dane County, {n} arms-length residential sales joined to the 2025 roll\n")
 
-    stats = [("median", median_ratio), ("cod", cod), ("prd", prd), ("prb", prb)]
+    stats = [("median", median_ratio), ("cod", cod), ("prd", prd),
+             ("prb", prb), ("direct", direct)]
     results = {}
     print(f"{'statistic':<10}{'estimate':>10}{'95% CI':>22}{'IAAO range':>16}   verdict")
     for name, fn in stats:
@@ -151,6 +175,11 @@ def report(rows):
         rng = f"[{lo:.3f}, {hi:.3f}]"
         std = f"{IAAO[name][0]:.2f} to {IAAO[name][1]:.2f}"
         print(f"{name:<10}{val:>10.3f}{rng:>22}{std:>16}   {verdict(name, val, lo, hi)}")
+
+    print("\nprb is the IAAO definition, whose value proxy is built partly from the")
+    print("assessed value it is testing. direct is the same question asked without that")
+    print("contamination. They disagree in sign here; prb_bias.py shows why, and that the")
+    print("disagreement is a property of dispersion rather than of this county.")
 
     print("\nMedian assessment ratio by sale-price decile")
     print(f"{'decile':<8}{'n':>6}{'price range':>26}{'median ratio':>14}")
