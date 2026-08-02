@@ -16,7 +16,7 @@ rather than across the whole roll.
 
 ## Findings
 
-Six, on 5,821 chase-free arms-length residential sales joined to the 2025 roll. The
+Seven, on 5,821 chase-free arms-length residential sales joined to the 2025 roll. The
 first was not the question the project set out to ask, and it changed how the rest had
 to be measured.
 
@@ -218,6 +218,41 @@ municipality is maintained at full market value.
 
 `python3 replication.py`
 
+### 7. The mechanism, measured directly instead of by proxy
+
+Finding 6 used assessment level as a stand-in for whether a municipality was revaluing.
+Wisconsin publishes the real variable. Every municipality files an assessment type each
+year, and DOR publishes it inside the Tableau workbook behind its
+[Wisconsin Real Estate Sales](https://public.tableau.com/views/Sales0_1/Story1)
+dashboard: FULL REVALUATION, EXTERIOR REVALUATION, INTERIM MARKET, or MAINTENANCE.
+
+Only an interim market update sets new values parcel by parcel without a full
+revaluation, so it is the only assessment type where copying a sale price is possible at
+all. That splits the question into an opportunity and a choice, and the data separates
+them completely:
+
+| 2025 assessment type | assessor | chasing | total |
+|---|---|---|---|
+| FULL REVALUATION | every other contractor | 0 | 1 |
+| **INTERIM MARKET** | **Accurate Appraisal LLC** | **9** | **9** |
+| **INTERIM MARKET** | Madison (in-house) | 1 | 1 |
+| **INTERIM MARKET** | every other contractor | **0** | **8** |
+| MAINTENANCE | Accurate Appraisal LLC | 0 | 8 |
+| MAINTENANCE | every other contractor | 0 | 16 |
+
+**All 10 chasing municipalities did an interim market update in 2025. None of the 25 on
+any other assessment type chases, including all 8 of the target firm's own.**
+
+Given the opportunity, one firm takes it 9 times out of 9 and no other contractor takes
+it at all.
+
+This retires the loose end from finding 6. The firm's non-chasing municipalities were
+never exceptions to a rule about the firm. They are maintenance years, where no assessor
+is revaluing anything, so there was nothing to chase. Assessment level was picking that
+up indirectly; assessment type states it.
+
+`python3 revaluation.py`
+
 ### What the time adjustment cost
 
 Fitting the market trend on all sales returns 14.3% annual price growth for Dane County.
@@ -228,10 +263,9 @@ housing market.
 ## Status
 
 The findings above are stable on the full 24-month pull and split by municipality.
-Still open: the Cook County reproduction described below, and why the practice appears in
-some of the firm's municipalities and not others. Assessment level predicts it well, but
-Wisconsin publishes revaluation type by municipality and year, which would test that
-directly rather than by proxy.
+Still open: the Cook County reproduction described below, and whether the pattern holds
+in the target firm's remaining counties. Five of the roughly twenty counties it works in
+have been tested.
 
 ## Data
 
@@ -240,6 +274,7 @@ directly rather than by proxy.
 | Wisconsin Statewide Parcels DB (WI DOA) | 169,025 class-1 residential parcels in Dane County, 2025 roll, with assessed value, land and improvement split, tax, address, coordinates | ArcGIS FeatureServer, public |
 | WI DOR Real Estate Transfer Returns | parcel-level sale price and date, five year window | `propertyinfo.revenue.wi.gov`, public |
 | WI DOR Wisconsin Municipal Assessors | contracted assessor for all 1,913 Wisconsin municipalities across 71 counties | `assrlist.pdf`, public |
+| WI DOR Wisconsin Real Estate Sales | assessment type per municipality per year, 1,913 municipalities | Tableau workbook extract, public |
 
 Raw pulls land in `data/` and are gitignored. Every script that touches the network
 writes exactly one file and can be rerun.
