@@ -279,12 +279,21 @@ have been tested.
 Raw pulls land in `data/` and are gitignored. Every script that touches the network
 writes exactly one file and can be rerun.
 
-## Validation before extension
+## Validation, and what is still missing
 
-The method is not novel. Chris Berry's Cook County work is the reference
-implementation, and this pipeline is checked against his published figures before it is
-pointed at a county nobody has studied. If the Cook reproduction does not land, the
-Dane result is not trustworthy either and does not get published.
+The method is not novel. Chris Berry's Cook County work is the reference implementation.
+The plan was to reproduce his published figures first and only then point the pipeline
+at an unstudied county.
+
+**That reproduction has not been done.** No Cook County code exists in this repository.
+What stands in for it is internal: every script carries a `--test` that asserts its own
+claim, `iaao.py` checks its statistics against synthetic rolls with known regressivity in
+both directions, and the central finding was replicated out of sample in four counties it
+was not derived from. That is real validation but it is not the same thing as landing on
+a number someone else published, and the two should not be confused.
+
+Until the Cook reproduction runs, the correct reading is that the pipeline is
+self-consistent and externally unverified.
 
 ## Kill criterion, set in advance
 
